@@ -53,3 +53,23 @@
 - 60번: 앱을 홍보하는 질문 문구 삭제.
 
 확인 근거: [보건의료기본법](https://www.law.go.kr/법령/보건의료기본법), [의료법 종합병원 요건](https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1031732649), [의료법 결격사유](https://www.law.go.kr/LSW/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1032850489), [의료법 개설 주체](https://www.law.go.kr/LSW/lsLawLinkInfo.do?chrClsCd=010202&lsJoLnkSeq=1000063926).
+
+## 추가 문제집: 보건의료정보관리 및 의무기록 39문항
+
+message (1).txt의 표기상 40문항과 달리 실제 데이터는 39문항입니다. 누락된 문제를 임의로 만들지 않고 39문항을 등록했습니다. 원본 문항 번호 02~131을 숫자 ID로 유지하고, 전체 진행은 배열 순서 1~39로 표시합니다. 원본의 br 태그는 안전한 일반 텍스트 줄바꿈으로 변환합니다.
+
+- 11번: 시행규칙 제15조의 현행 제목을 정리하고 공식 출처 연결.
+- 18번: 정답 보기의 '보건의료정보사'를 '보건의료정보관리사'로 교정하고 근거 법령을 의료기사 등에 관한 법률로 정리.
+- 39번: 오탈자를 작성기한으로 정리.
+- 44번: 진정성과 무결성을 혼합한 질문을 진정성의 정의를 묻도록 정리하고 보기의 정의 교정.
+- 88번: 전입기록을 묻는 질문임을 명시.
+- 97번: 수술·시술 기록을 특정하도록 질문을 구체화하고 다른 서식은 완성도 관리 대상이 아니라는 단정 삭제.
+- 103번: 퇴원요약서 작성에 관한 문장 오탈자 정리.
+- 106번: 자의퇴원 시 작성하는 문서로 질문을 명확화하고, 서명만으로 모든 책임이 면제된다는 오해를 피하도록 설명 보완.
+- 116번: 위험평가와 ASA class 사이의 중복 정답 여지를 줄이도록 전신 신체상태 분류 지표로 질문을 명확화.
+- 118번: medline을 midline으로 정리.
+- 131번: GPLDA 각 약어의 대응을 구체적으로 정리.
+
+원본의 3주기 급성기병원 인증기준 문항은 해당 주기를 유지하며 최신 주기로 바꾸지 않았습니다. 모든 문항의 전문 감수를 완료한 것은 아닙니다.
+
+확인 자료: [의료법 시행규칙 제15조](https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1030743783), [의료기사 등에 관한 법률 시행규칙 개정 내역](https://law.go.kr/LSW/lsRvsDocListP.do?chrClsCd=010102&lsId=007861), [NARA 기록의 진정성과 무결성](https://www.archives.gov/records-mgmt/policy/electronic-signature-technology.html), [ASA 마취 전 평가](https://www.asahq.org/~/media/Sites/ASAHQ/Files/Public/Resources/standards-guidelines/basic-standards-for-preanesthesia-care.pdf).
