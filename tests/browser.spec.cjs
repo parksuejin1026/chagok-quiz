@@ -51,7 +51,9 @@ test('미응답 처리, 복수정답, 해설 열람, 마지막 문항, 초기화
   await expect(page.locator('#feedback')).toHaveText('정답');
   await expect(page.locator('#explanationText')).toContainText('선고유예');
   await page.locator('#questionSelect').selectOption('60');
-  await expect(page.locator('#next')).toBeDisabled();
+  await expect(page.locator('#next')).toHaveText('미응답 풀기 →');
+  await page.locator('#next').click();
+  await expect(page.locator('#questionSelect')).toHaveValue('1');
   page.once('dialog',dialog=>dialog.accept());
   await page.locator('#reset').click();
   await expect(page.locator('#stats')).toContainText('푼 문제 0/60');
@@ -79,4 +81,104 @@ test('저장소가 손상되거나 저장이 막혀도 문제를 풀 수 있다'
   await page.goto('./');await page.locator('input[value="2"]').check();await page.locator('#submitAnswer').click();
   await expect(page.locator('#feedback')).toHaveText('정답');
   await expect(page.locator('#saveStatus')).toContainText('저장할 수 없습니다');
+});
+
+
+test('제출 전 선택은 문제 이동·새로고침·문제집 전환 후에도 유지된다', async ({page}) => {
+  await page.goto('./');
+  await page.locator('input[value="1"]').check();
+  await page.locator('#next').click();
+  await page.locator('#prev').click();
+  await expect(page.locator('input[value="1"]')).toBeChecked();
+  await expect(page.locator('#stats')).toContainText('푼 문제 0/70');
+  await page.reload();
+  await expect(page.locator('input[value="1"]')).toBeChecked();
+  await page.locator('#setSelect').selectOption('health-law-60');
+  await page.locator('input[value="2"]').check();
+  await page.locator('#setSelect').selectOption('health-70');
+  await expect(page.locator('input[value="1"]')).toBeChecked();
+  await page.locator('#questionSelect').selectOption('9');
+  await page.locator('input[value="2"]').check();
+  await page.reload();
+  await expect(page.locator('input[value="2"]')).toBeChecked();
+  await expect(page.locator('input[value="3"]')).not.toBeChecked();
+  await page.locator('input[value="3"]').check();
+  await page.locator('#submitAnswer').click();
+  await expect(page.locator('#feedback')).toHaveText('정답');
+});
+
+test('답 수정·취소 및 재제출은 같은 문항을 중복 집계하지 않는다', async ({page}) => {
+  await page.goto('./');
+  await page.locator('input[value="1"]').check();
+  await page.locator('#submitAnswer').click();
+  await expect(page.locator('#stats')).toContainText('정답 0 · 오답 1');
+  await page.locator('#editAnswer').click();
+  await expect(page.locator('input[value="2"]')).toBeEnabled();
+  await page.locator('input[value="2"]').check();
+  await page.locator('#next').click();
+  await page.locator('#prev').click();
+  await expect(page.locator('input[value="2"]')).toBeChecked();
+  await page.reload();
+  await expect(page.locator('#instruction')).toHaveText('답 수정 중');
+  await expect(page.locator('#stats')).toContainText('정답 0 · 오답 1');
+  await page.locator('#editAnswer').click();
+  await expect(page.locator('input[value="1"]')).toBeChecked();
+  await expect(page.locator('#feedback')).toHaveText('오답');
+  await page.locator('#editAnswer').click();
+  await page.locator('input[value="2"]').check();
+  await page.locator('#submitAnswer').click();
+  await expect(page.locator('#feedback')).toHaveText('정답');
+  await expect(page.locator('#stats')).toHaveText('푼 문제 1/70 · 정답 1 · 오답 0');
+  await page.reload();
+  await expect(page.locator('#stats')).toHaveText('푼 문제 1/70 · 정답 1 · 오답 0');
+});
+
+test('마지막 문항 제출 시 완료와 최종 개수를 표시하고 초기화 취소를 지원한다', async ({page}) => {
+  await page.goto('./');
+  await page.evaluate(() => {
+    const set = window.QUIZ_SETS[0];
+    const answers = Object.fromEntries(set.questions.slice(0,-1).map(q => [q.id,q.answer]));
+    localStorage.setItem('chagok-quiz:v1:health-70:1', JSON.stringify({answers,currentId:70}));
+  });
+  await page.reload();
+  await expect(page.locator('#completion')).toBeHidden();
+  await page.locator('input[value="4"]').check();
+  await page.locator('#submitAnswer').click();
+  await expect(page.locator('#completion')).toHaveText('문제집 풀이 완료 · 정답 70/70 · 오답 0');
+  await expect(page.locator('#next')).toHaveText('풀이 완료');
+  await expect(page.locator('#next')).toBeDisabled();
+  await page.locator('#editAnswer').click();
+  await page.locator('input[value="1"]').check();
+  await page.locator('#submitAnswer').click();
+  await expect(page.locator('#completion')).toContainText('정답 69/70 · 오답 1');
+  await expect(page.locator('#reset')).toHaveText('문제집 초기화');
+  page.once('dialog', dialog => dialog.dismiss());
+  await page.locator('#reset').click();
+  await expect(page.locator('#stats')).toContainText('푼 문제 70/70');
+  page.once('dialog', dialog => dialog.accept());
+  await page.locator('#reset').click();
+  await expect(page.locator('#completion')).toBeHidden();
+  await expect(page.locator('#stats')).toContainText('푼 문제 0/70');
+});
+
+test('긴 해설 아래에서 이동하면 새 문제 상단으로 스크롤된다', async ({page}) => {
+  await page.goto('./');
+  await page.locator('input[value="2"]').check();
+  await page.locator('#submitAnswer').click();
+  await page.locator('#explanationText').evaluate(el => { el.textContent = '긴 해설\n'.repeat(80); });
+  await page.locator('#next').scrollIntoViewIfNeeded();
+  const before = await page.evaluate(() => scrollY);
+  expect(before).toBeGreaterThan(1000);
+  await page.locator('#next').click();
+  await expect(page.locator('#questionSelect')).toHaveValue('2');
+  await expect(page.locator('#questionTitle')).toBeFocused();
+  const position = await page.locator('#questionTitle').evaluate(el => {
+    const rect = el.getBoundingClientRect();
+    return { top: rect.top, bottom: rect.bottom, viewport: innerHeight, scroll: scrollY };
+  });
+  // A short question may leave too little page height to align the card at 16px.
+  // Require the new heading to be visible and the previous deep scroll to be gone.
+  expect(position.top).toBeGreaterThanOrEqual(0);
+  expect(position.bottom).toBeLessThanOrEqual(position.viewport);
+  expect(position.scroll).toBeLessThan(before);
 });

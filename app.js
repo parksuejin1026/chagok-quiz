@@ -16,6 +16,7 @@
   const lastSetKey = 'chagok-quiz:last-set';
   let set = sets[0];
   let answers = {};
+  let drafts = {};
   let index = 0;
   let draft = null;
   try {
@@ -25,7 +26,7 @@
   const storageKey = () => 'chagok-quiz:v1:' + set.id + ':' + set.version;
   function save() {
     try {
-      localStorage.setItem(storageKey(), JSON.stringify({ answers, currentId: set.questions[index].id }));
+      localStorage.setItem(storageKey(), JSON.stringify({ answers, drafts, currentId: set.questions[index].id }));
       localStorage.setItem(lastSetKey, set.id);
       $('saveStatus').hidden = true;
     } catch {
@@ -36,6 +37,7 @@
 
   function restore() {
     answers = {};
+    drafts = {};
     index = 0;
     try {
       const saved = JSON.parse(localStorage.getItem(storageKey()) || 'null');
@@ -45,9 +47,33 @@
             answers[question.id] = saved.answers[question.id];
           }
         }
+        for (const question of set.questions) {
+          const value = saved.drafts?.[question.id];
+          if (validDraft(question, value)) drafts[question.id] = value;
+        }
         index = Math.max(0, set.questions.findIndex(question => question.id === saved.currentId));
       }
     } catch {}
+  }
+
+  function validDraft(question, value) {
+    if (question.type === 'short') return typeof value === 'string' && value.length <= 500;
+    if (question.type === 'multiple') {
+      return Array.isArray(value) && new Set(value).size === value.length
+        && value.every(number => Number.isInteger(number) && number >= 1 && number <= question.options.length);
+    }
+    return core.validAnswer(question, value);
+  }
+
+  function rememberDraft(value) {
+    draft = value;
+    drafts[set.questions[index].id] = value;
+    save();
+    $('notice').hidden = true;
+  }
+
+  function firstUnanswered() {
+    return set.questions.findIndex(question => !core.validAnswer(question, answers[question.id]));
   }
 
   function answerLabel(question) {
@@ -61,18 +87,34 @@
     const saved = answers[question.id];
     const answered = core.validAnswer(question, saved);
     const stats = core.stats(set.questions, answers);
-    draft = null;
+    const hasDraft = Object.hasOwn(drafts, question.id);
+    const editing = answered && hasDraft;
+    const locked = answered && !editing;
+    const selected = hasDraft ? drafts[question.id] : saved;
+    draft = hasDraft || editing ? selected : null;
     $('notice').hidden = true;
     $('category').textContent = question.category + ' · ' + question.id + '번';
     $('questionTitle').textContent = question.title;
     $('stats').textContent = '푼 문제 ' + stats.answered + '/' + stats.total + ' · 정답 ' + stats.correct + ' · 오답 ' + stats.wrong;
     $('position').textContent = (index + 1) + ' / ' + set.questions.length;
     $('prev').disabled = index === 0;
-    $('next').disabled = index === set.questions.length - 1;
-    $('instruction').textContent = question.type === 'multiple' ? '정답을 모두 선택하세요.' : '';
+    const last = index === set.questions.length - 1;
+    const remaining = firstUnanswered();
+    $('next').disabled = last && (remaining === -1 || remaining === index);
+    $('next').textContent = last
+      ? (remaining === -1 ? '풀이 완료' : remaining === index ? '마지막 문제' : '미응답 풀기 →')
+      : '다음 문제 →';
+    $('completion').hidden = stats.unanswered !== 0;
+    $('completion').textContent = stats.unanswered === 0
+      ? '문제집 풀이 완료 · 정답 ' + stats.correct + '/' + stats.total + ' · 오답 ' + stats.wrong
+      : '';
+    $('instruction').textContent = editing ? '답 수정 중' : question.type === 'multiple' ? '정답을 모두 선택하세요.' : '';
     $('feedback').textContent = '';
-    $('submitAnswer').hidden = answered;
-    $('explanation').open = answered;
+    $('submitAnswer').hidden = locked;
+    $('submitAnswer').textContent = editing ? '수정한 답 확인' : '정답 확인';
+    $('editAnswer').hidden = !answered;
+    $('editAnswer').textContent = editing ? '수정 취소' : '답 수정';
+    $('explanation').open = locked;
     $('correctAnswer').textContent = '정답: ' + answerLabel(question);
     $('explanationText').textContent = question.explanation;
     $('options').replaceChildren();
@@ -89,9 +131,9 @@
       input.maxLength = 500;
       input.autocomplete = 'off';
       input.setAttribute('aria-label', '단답형 정답');
-      input.value = answered ? saved : '';
-      input.disabled = answered;
-      input.addEventListener('input', () => { draft = input.value; });
+      input.value = selected ?? '';
+      input.disabled = locked;
+      input.addEventListener('input', () => rememberDraft(input.value));
       $('options').append(input);
     } else {
       question.options.forEach((text, offset) => {
@@ -102,26 +144,26 @@
         input.type = question.type === 'multiple' ? 'checkbox' : 'radio';
         input.name = 'answer';
         input.value = number;
-        input.disabled = answered;
-        input.checked = answered && (Array.isArray(saved) ? saved.includes(number) : saved === number);
+        input.disabled = locked;
+        input.checked = Array.isArray(selected) ? selected.includes(number) : selected === number;
         const content = document.createElement('span');
         content.textContent = number + '. ' + text;
         label.append(input, content);
-        if (answered) {
+        if (locked) {
           const correct = question.type === 'multiple' ? question.answer.includes(number) : question.answer === number;
           if (correct) label.classList.add('correct');
           else if (input.checked) label.classList.add('incorrect');
         }
         input.addEventListener('change', () => {
-          draft = question.type === 'multiple'
+          rememberDraft(question.type === 'multiple'
             ? [...$('options').querySelectorAll('input:checked')].map(item => +item.value)
-            : number;
+            : number);
         });
         $('options').append(label);
       });
     }
 
-    if (answered) {
+    if (locked) {
       const correct = core.isCorrect(question, saved);
       $('feedback').className = correct ? 'correct-text' : 'wrong-text';
       $('feedback').textContent = correct ? '정답' : '오답';
@@ -146,27 +188,49 @@
       $('questionSelect').add(new Option(item.id + '번' + status, String(item.id)));
     }
     $('questionSelect').value = String(question.id);
-    if (focus) $('questionTitle').focus({ preventScroll: true });
+    if (focus) {
+      $('questionTitle').focus({ preventScroll: true });
+      $('questionCard').scrollIntoView({ block: 'start', behavior: 'instant' });
+    }
   }
 
   $('answerForm').addEventListener('submit', event => {
     event.preventDefault();
     const question = set.questions[index];
-    if (core.validAnswer(question, answers[question.id])) return;
+    if (core.validAnswer(question, answers[question.id]) && !Object.hasOwn(drafts, question.id)) return;
     if (!core.validAnswer(question, draft)) {
       $('notice').textContent = question.type === 'short' ? '정답을 입력하세요.' : '답을 선택하세요.';
       $('notice').hidden = false;
       return;
     }
     answers[question.id] = draft;
+    delete drafts[question.id];
     save();
     render();
+  });
+  $('editAnswer').addEventListener('click', () => {
+    const question = set.questions[index];
+    if (Object.hasOwn(drafts, question.id)) {
+      delete drafts[question.id];
+    } else {
+      const saved = answers[question.id];
+      drafts[question.id] = Array.isArray(saved) ? [...saved] : saved;
+    }
+    render();
+    save();
   });
   $('prev').addEventListener('click', () => {
     if (index > 0) { index--; render(true); save(); }
   });
   $('next').addEventListener('click', () => {
-    if (index < set.questions.length - 1) { index++; render(true); save(); }
+    if (index < set.questions.length - 1) index++;
+    else {
+      const remaining = firstUnanswered();
+      if (remaining < 0) return;
+      index = remaining;
+    }
+    render(true);
+    save();
   });
   $('questionSelect').addEventListener('change', event => {
     index = set.questions.findIndex(question => String(question.id) === event.target.value);
@@ -177,12 +241,13 @@
     save();
     set = sets.find(item => item.id === event.target.value);
     restore();
-    render();
+    render(true);
     save();
   });
   $('reset').addEventListener('click', () => {
-    if (!confirm('선택한 문제집의 풀이 기록을 지울까요?')) return;
+    if (!confirm('선택한 문제집의 제출한 답과 작성 중인 답을 모두 지울까요?')) return;
     answers = {};
+    drafts = {};
     index = 0;
     render();
     save();

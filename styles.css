@@ -43,3 +43,9 @@ nav { display: flex; justify-content: space-between; align-items: center; gap: 8
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 #notice { color: #a33232; font-size: 14px; }
 @media (max-width: 540px) { main { margin: 20px auto; padding: 0 12px; } h1 { font-size: 21px; margin-bottom: 18px; } .controls, article { padding: 17px 14px; } h2 { font-size: 18px; } nav button { padding: 8px 10px; font-size: 13px; } .option { font-size: 14px; } }
+
+[hidden] { display: none !important; }
+#questionCard { scroll-margin-top: 16px; }
+.answer-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+#completion { margin: 14px 0 0; padding: 10px 12px; border: 1px solid #79a379; background: #eef6ee; color: #27602e; font-size: 14px; line-height: 1.6; }
+@media (max-width: 540px) { .toolbar { flex-wrap: wrap; } #questionSelect { flex: 1; min-width: 80px; } #reset { font-size: 13px; padding-inline: 10px; } }
