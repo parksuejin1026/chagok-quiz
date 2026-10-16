@@ -6,7 +6,7 @@ test('간단한 화면에서 기존·신규 문제집을 선택하고 기록을 
   await expect(page).toHaveTitle('중간고사 대비 문제풀기');
   await expect(page.locator('h1')).toHaveText('중간고사 대비 문제풀기');
   await expect(page.locator('body')).not.toContainText('차곡');
-  await expect(page.locator('#setSelect option')).toHaveCount(4);
+  await expect(page.locator('#setSelect option')).toHaveCount(5);
   await expect(page.locator('#questionSelect option')).toHaveCount(70);
   await page.locator('input[value="2"]').check();
   await page.locator('#submitAnswer').click();
@@ -246,7 +246,7 @@ test('교체 전 39문항 기록은 새 66문항 문제집에 섞이지 않는�
     localStorage.setItem('chagok-quiz:v1:health-law-60:1',JSON.stringify({answers:{1:2},currentId:1}));
   });
   await page.goto('./');
-  await expect(page.locator('#setSelect option')).toHaveCount(4);
+  await expect(page.locator('#setSelect option')).toHaveCount(5);
   await expect(page.locator('#setSelect option[value="medical-records-39"]')).toHaveCount(0);
   await page.locator('#setSelect').selectOption('medical-records-66');
   await expect(page.locator('#stats')).toContainText('푼 문제 0/66');
@@ -302,3 +302,5 @@ test('이미지 로드 실패 시 안내하고 다른 문제에 실패 상태를
   await expect(page.locator('#questionFigure')).toBeHidden();
   await expect(page.locator('#imageError')).toBeHidden();
 });
+
+test('병원회계·재무관리 문제집의 70문항, 채점, 법령 해설과 저장',async({page})=>{const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('./');await page.locator('#setSelect').selectOption('hospital-finance-70');await expect(page.locator('#questionSelect option')).toHaveCount(70);await expect(page.locator('#questionTitle')).toContainText('관리회계');await expect(page.getByRole('radio')).toHaveCount(4);await page.getByRole('radio').nth(2).check();await page.locator('#submitAnswer').click();await expect(page.locator('#feedback')).toHaveText('정답');await page.locator('#questionSelect').selectOption('57');await expect(page.locator('#questionTitle')).toContainText('최소 병상 기준');await page.locator('#explanation summary').click();await expect(page.locator('#sources a')).toHaveAttribute('href',/law.go.kr/);await page.locator('#questionSelect').selectOption('69');await expect(page.locator('#questionTitle')).toContainText('원가 항목으로 분류될 수 있는');await page.getByRole('radio').nth(1).check();await page.locator('#submitAnswer').click();await expect(page.locator('#feedback')).toHaveText('정답');await page.reload();await expect(page.locator('#setSelect')).toHaveValue('hospital-finance-70');await expect(page.locator('#stats')).toContainText('푼 문제 2/70');expect(errors).toEqual([]);});
