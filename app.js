@@ -76,6 +76,11 @@
     return set.questions.findIndex(question => !core.validAnswer(question, answers[question.id]));
   }
 
+  $('questionImage').addEventListener('load', () => { $('imageError').hidden = true; });
+  $('questionImage').addEventListener('error', () => {
+    if (!$('questionFigure').hidden) $('imageError').hidden = false;
+  });
+
   function answerLabel(question) {
     if (question.type === 'short') return question.answers.join(' / ');
     const numbers = question.type === 'multiple' ? question.answer : [question.answer];
@@ -95,6 +100,17 @@
     $('notice').hidden = true;
     $('category').textContent = question.category + ' · ' + question.id + '번';
     $('questionTitle').textContent = question.title;
+    $('questionFigure').hidden = !question.image;
+    $('imageError').hidden = true;
+    if (question.image) {
+      $('questionImage').alt = question.image.alt;
+      $('questionImage').src = question.image.src;
+      $('imageLink').href = question.image.src;
+    } else {
+      $('questionImage').removeAttribute('src');
+      $('questionImage').alt = '';
+      $('imageLink').removeAttribute('href');
+    }
     $('stats').textContent = '푼 문제 ' + stats.answered + '/' + stats.total + ' · 정답 ' + stats.correct + ' · 오답 ' + stats.wrong;
     $('position').textContent = (index + 1) + ' / ' + set.questions.length;
     $('prev').disabled = index === 0;

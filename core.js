@@ -11,6 +11,7 @@ function validate(sets) {
   for (const q of set.questions) {
    if (!q.id || ids.has(q.id) || !q.title || !q.explanation) throw Error('문항 ID, 제목, 해설을 확인하세요.');
    ids.add(q.id);
+   if (q.image && (typeof q.image.src !== 'string' || !/^assets\/(?:[a-zA-Z0-9_-]+\/)*[a-zA-Z0-9_-]+\.(?:jpe?g|png|webp)$/.test(q.image.src) || typeof q.image.alt !== 'string' || !q.image.alt.trim())) throw Error('문제 이미지 경로와 설명을 확인하세요.');
    if (!['single','multiple','boolean','short'].includes(q.type)) throw Error('지원하지 않는 문항 유형: '+q.type);
    if (q.type === 'short') { if (!Array.isArray(q.answers) || !q.answers.length || q.answers.some(a=>typeof a!=='string'||!a.trim())) throw Error('단답형 정답을 확인하세요.'); }
    else {

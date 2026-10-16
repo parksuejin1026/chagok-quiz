@@ -75,3 +75,13 @@
 확인 자료: [의료법 시행규칙 제15조](https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1030743783), [의료기사 등에 관한 법률 시행규칙 개정 내역](https://law.go.kr/LSW/lsRvsDocListP.do?chrClsCd=010102&lsId=007861), [NARA 기록의 진정성과 무결성](https://www.archives.gov/records-mgmt/policy/electronic-signature-technology.html), [ASA 마취 전 평가](https://www.asahq.org/~/media/Sites/ASAHQ/Files/Public/Resources/standards-guidelines/basic-standards-for-preanesthesia-care.pdf).
 
 교체본 추가 정리: 167번 판단서 문장 및 해설 오탈자, 186번 CDI 전문가 문장 오탈자를 정리했습니다. 전체 66문항의 정답 범위와 중복 ID를 검증합니다.
+
+## 추가 문제집: 의료의 질 관리 및 환자안전 29문항
+
+message (3).txt는 화면에 27문항이라고 표시하지만 실제 데이터는 29문항입니다. 원본 번호를 유지하고 정답 번호를 0부터 시작하는 방식에서 1부터 시작하도록 변환했습니다. 총 4문제집 225문항입니다.
+
+사진 대응: 1.jpg → 68번(인과관계도), 2.jpg → 80번(파레토차트), 3.jpg → 81번(런 차트), 4.jpg → 82번(관리도). 18~21번 ID는 없으며, 원본 18번째 문항은 74번 친화도이므로 사진 내용에 맞는 사용자의 대체 번호 68·80·81·82를 사용했습니다. 74번은 그림 없이 풀 수 있도록 아이디어 그룹화 설명을 질문에 넣었습니다. 사진은 원본 그대로 사용합니다.
+
+문항 정리: 25번 질 관리 오타, 48번 태도·인식 조사 질문과 보기 정리, 60번 근접오류 상황의 문장 정리, 61~62번 FEMA를 FMEA로 교정, 86~87번 DMAIC의 Define을 정의로 교정, 98번 환자 경로를 따르는 조사 정답을 IT로 교정, 110번 인증 유효기간이 3년이라는 잘못된 해설 삭제 및 신청 대상 보기 명확화.
+
+확인 출처: [IHI FMEA](https://www.ihi.org/library/tools/failure-modes-and-effects-analysis-fmea-tool), [ASQ DMAIC](https://asq.org/quality-resources/dmaic), [Joint Commission 조사 방법](https://www.jointcommission.org/en-us/knowledge-library/support-center/survey-or-review-preparation/tracer-methodology). 전체 문제의 전문 감수가 완료된 것은 아닙니다.

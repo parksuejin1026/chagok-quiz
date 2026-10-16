@@ -49,3 +49,9 @@ nav { display: flex; justify-content: space-between; align-items: center; gap: 8
 .answer-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 #completion { margin: 14px 0 0; padding: 10px 12px; border: 1px solid #79a379; background: #eef6ee; color: #27602e; font-size: 14px; line-height: 1.6; }
 @media (max-width: 540px) { .toolbar { flex-wrap: wrap; } #questionSelect { flex: 1; min-width: 80px; } #reset { font-size: 13px; padding-inline: 10px; } }
+
+#questionFigure { margin: 0 0 22px; }
+#imageLink { display: block; color: #425b7d; text-decoration: none; }
+#questionImage { display: block; width: 100%; height: auto; border: 1px solid #ddd; }
+#imageLink span { display: block; padding-top: 7px; font-size: 12px; text-align: right; }
+#imageError { color: #a33232; font-size: 13px; }

@@ -6,7 +6,7 @@ test('간단한 화면에서 기존·신규 문제집을 선택하고 기록을 
   await expect(page).toHaveTitle('중간고사 대비 문제풀기');
   await expect(page.locator('h1')).toHaveText('중간고사 대비 문제풀기');
   await expect(page.locator('body')).not.toContainText('차곡');
-  await expect(page.locator('#setSelect option')).toHaveCount(3);
+  await expect(page.locator('#setSelect option')).toHaveCount(4);
   await expect(page.locator('#questionSelect option')).toHaveCount(70);
   await page.locator('input[value="2"]').check();
   await page.locator('#submitAnswer').click();
@@ -246,7 +246,7 @@ test('교체 전 39문항 기록은 새 66문항 문제집에 섞이지 않는�
     localStorage.setItem('chagok-quiz:v1:health-law-60:1',JSON.stringify({answers:{1:2},currentId:1}));
   });
   await page.goto('./');
-  await expect(page.locator('#setSelect option')).toHaveCount(3);
+  await expect(page.locator('#setSelect option')).toHaveCount(4);
   await expect(page.locator('#setSelect option[value="medical-records-39"]')).toHaveCount(0);
   await page.locator('#setSelect').selectOption('medical-records-66');
   await expect(page.locator('#stats')).toContainText('푼 문제 0/66');
@@ -258,4 +258,47 @@ test('교체 전 39문항 기록은 새 66문항 문제집에 섞이지 않는�
   await expect(page.locator('#feedback')).toHaveText('정답');
   await page.locator('#setSelect').selectOption('health-law-60');
   await expect(page.locator('#stats')).toContainText('푼 문제 1/60');
+});
+
+
+test('네 그림 문제의 이미지·원본 확대·채점·모바일 크기가 정상이다',async({page})=>{
+  const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  await page.goto('./');await page.locator('#setSelect').selectOption('quality-safety-29');
+  await expect(page.locator('#questionSelect option')).toHaveCount(29);
+  for(const [id,answer] of [[68,2],[80,5],[81,2],[82,1]]){
+    await page.locator('#questionSelect').selectOption(String(id));
+    await expect(page.locator('#questionImage')).toHaveAttribute('src','assets/quality/question-'+id+'.jpg');
+    await expect(page.locator('#questionFigure')).toBeVisible();
+    await expect.poll(()=>page.locator('#questionImage').evaluate(img=>img.complete && img.naturalWidth>0)).toBe(true);
+    await expect(page.locator('#imageError')).toBeHidden();
+    await expect(page.locator('#imageLink')).toHaveAttribute('href','assets/quality/question-'+id+'.jpg');
+    const dimensions=await page.locator('#questionImage').evaluate(img=>({width:img.getBoundingClientRect().width,viewport:innerWidth}));
+    expect(dimensions.width).toBeLessThan(dimensions.viewport);
+    await page.getByRole('radio').nth(answer-1).check();await page.locator('#submitAnswer').click();
+    await expect(page.locator('#feedback')).toHaveText('정답');
+  }
+  await expect(page.locator('#stats')).toContainText('푼 문제 4/29');
+  const popupPromise=page.waitForEvent('popup');
+  await page.locator('#imageLink').click();
+  const popup=await popupPromise;await popup.waitForLoadState();
+  expect(popup.url()).toContain('/assets/quality/question-82.jpg');await popup.close();
+  await page.locator('#next').click();
+  await expect(page.locator('#questionSelect')).toHaveValue('84');
+  await expect(page.locator('#questionFigure')).toBeHidden();
+  await expect(page.locator('#questionImage')).not.toHaveAttribute('src',/./);
+  await page.locator('#questionSelect').selectOption('74');
+  await expect(page.locator('#questionTitle')).not.toContainText('아래 그림');
+  await page.locator('#setSelect').selectOption('health-70');
+  await expect(page.locator('#questionFigure')).toBeHidden();
+  expect(errors).toEqual([]);
+});
+
+test('이미지 로드 실패 시 안내하고 다른 문제에 실패 상태를 남기지 않는다',async({page})=>{
+  await page.route('**/assets/quality/question-68.jpg',route=>route.abort());
+  await page.goto('./');await page.locator('#setSelect').selectOption('quality-safety-29');
+  await page.locator('#questionSelect').selectOption('68');
+  await expect(page.locator('#imageError')).toBeVisible();
+  await page.locator('#questionSelect').selectOption('74');
+  await expect(page.locator('#questionFigure')).toBeHidden();
+  await expect(page.locator('#imageError')).toBeHidden();
 });

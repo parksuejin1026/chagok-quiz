@@ -9,6 +9,7 @@
   <script defer src="data/health.js"></script>
   <script defer src="data/health-law.js"></script>
   <script defer src="data/medical-records.js"></script>
+  <script defer src="data/quality-safety.js"></script>
   <script defer src="core.js"></script>
   <script defer src="app.js"></script>
 </head>
@@ -28,6 +29,13 @@
   <article id="questionCard">
     <p id="category" class="meta"></p>
     <h2 id="questionTitle" tabindex="-1"></h2>
+    <figure id="questionFigure" hidden>
+      <a id="imageLink" target="_blank" rel="noopener noreferrer" aria-label="문제 이미지 원본 크게 보기">
+        <img id="questionImage" alt="">
+        <span>이미지 확대 ↗</span>
+      </a>
+      <p id="imageError" role="alert" hidden>문제 이미지를 불러오지 못했습니다. 새로고침해 주세요.</p>
+    </figure>
     <form id="answerForm">
       <p id="instruction" class="meta"></p>
       <fieldset id="options"><legend class="sr-only">정답 선택</legend></fieldset>
