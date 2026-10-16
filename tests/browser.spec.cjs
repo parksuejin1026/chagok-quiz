@@ -187,10 +187,10 @@ test('긴 해설 아래에서 이동하면 새 문제 상단으로 스크롤된�
 test('의무기록 문제집의 원본 번호·5지선다·줄바꿈·풀이 저장', async ({page}) => {
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
   await page.goto('./');
-  await page.locator('#setSelect').selectOption('medical-records-39');
-  await expect(page.locator('#questionSelect option')).toHaveCount(39);
+  await page.locator('#setSelect').selectOption('medical-records-66');
+  await expect(page.locator('#questionSelect option')).toHaveCount(66);
   await expect(page.locator('#questionSelect')).toHaveValue('2');
-  await expect(page.locator('#position')).toHaveText('1 / 39');
+  await expect(page.locator('#position')).toHaveText('1 / 66');
   await expect(page.getByRole('radio')).toHaveCount(5);
   await page.getByRole('radio').nth(2).check();
   await page.locator('#submitAnswer').click();
@@ -205,35 +205,57 @@ test('의무기록 문제집의 원본 번호·5지선다·줄바꿈·풀이 저
   await page.locator('#submitAnswer').click();
   await expect(page.locator('#feedback')).toHaveText('정답');
   await expect(page.locator('#explanationText')).toContainText('의료기사 등에 관한 법률');
-  await page.locator('#questionSelect').selectOption('131');
-  await expect(page.locator('#position')).toHaveText('39 / 39');
-  await page.getByRole('radio').nth(4).check();
+  await page.locator('#questionSelect').selectOption('200');
+  await expect(page.locator('#position')).toHaveText('66 / 66');
+  await page.getByRole('radio').nth(3).check();
   await page.locator('#submitAnswer').click();
   await expect(page.locator('#feedback')).toHaveText('정답');
   await page.reload();
-  await expect(page.locator('#setSelect')).toHaveValue('medical-records-39');
-  await expect(page.locator('#questionSelect')).toHaveValue('131');
-  await expect(page.locator('#stats')).toContainText('푼 문제 3/39');
+  await expect(page.locator('#setSelect')).toHaveValue('medical-records-66');
+  await expect(page.locator('#questionSelect')).toHaveValue('200');
+  await expect(page.locator('#stats')).toContainText('푼 문제 3/66');
   await page.locator('#prev').click();
-  await expect(page.locator('#questionSelect')).toHaveValue('122');
+  await expect(page.locator('#questionSelect')).toHaveValue('197');
   await page.locator('#setSelect').selectOption('health-70');
   await expect(page.locator('#stats')).toContainText('푼 문제 0/70');
   expect(errors).toEqual([]);
 });
 
-test('연속되지 않은 번호의 39문항을 완료하면 완료 개수와 수정 결과가 맞는다',async({page})=>{
+test('연속되지 않은 번호의 66문항을 완료하면 완료 개수와 수정 결과가 맞는다',async({page})=>{
   await page.goto('./');
   await page.evaluate(()=>{
-    const set=window.QUIZ_SETS.find(s=>s.id==='medical-records-39');
+    const set=window.QUIZ_SETS.find(s=>s.id==='medical-records-66');
     const answers=Object.fromEntries(set.questions.map(q=>[q.id,q.answer]));
-    localStorage.setItem('chagok-quiz:v1:medical-records-39:1',JSON.stringify({answers,currentId:131}));
+    localStorage.setItem('chagok-quiz:v1:medical-records-66:1',JSON.stringify({answers,currentId:200}));
     localStorage.setItem('chagok-quiz:last-set',set.id);
   });
   await page.reload();
-  await expect(page.locator('#completion')).toContainText('정답 39/39 · 오답 0');
+  await expect(page.locator('#completion')).toContainText('정답 66/66 · 오답 0');
   await expect(page.locator('#next')).toHaveText('풀이 완료');
   await page.locator('#editAnswer').click();
   await page.getByRole('radio').nth(0).check();
   await page.locator('#submitAnswer').click();
-  await expect(page.locator('#completion')).toContainText('정답 38/39 · 오답 1');
+  await expect(page.locator('#completion')).toContainText('정답 65/66 · 오답 1');
+});
+
+
+test('교체 전 39문항 기록은 새 66문항 문제집에 섞이지 않는다',async({page})=>{
+  await page.addInitScript(()=>{
+    localStorage.setItem('chagok-quiz:last-set','medical-records-39');
+    localStorage.setItem('chagok-quiz:v1:medical-records-39:1',JSON.stringify({answers:{2:3},drafts:{5:4},currentId:131}));
+    localStorage.setItem('chagok-quiz:v1:health-law-60:1',JSON.stringify({answers:{1:2},currentId:1}));
+  });
+  await page.goto('./');
+  await expect(page.locator('#setSelect option')).toHaveCount(3);
+  await expect(page.locator('#setSelect option[value="medical-records-39"]')).toHaveCount(0);
+  await page.locator('#setSelect').selectOption('medical-records-66');
+  await expect(page.locator('#stats')).toContainText('푼 문제 0/66');
+  await expect(page.locator('#questionSelect')).toHaveValue('2');
+  await expect(page.locator('#questionSelect option')).toHaveCount(66);
+  await page.locator('#questionSelect').selectOption('132');
+  await page.getByRole('radio').nth(2).check();
+  await page.locator('#submitAnswer').click();
+  await expect(page.locator('#feedback')).toHaveText('정답');
+  await page.locator('#setSelect').selectOption('health-law-60');
+  await expect(page.locator('#stats')).toContainText('푼 문제 1/60');
 });
