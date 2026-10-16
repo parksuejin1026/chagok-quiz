@@ -1,5 +1,82 @@
 const {test,expect}=require('@playwright/test');
-test('풀이, 채점, 저장, 오답 복습, 미응답 이동, 범위 및 텍스트',async({page})=>{const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('./');await expect(page.locator('#questionTitle')).toContainText('격리가 필요한');await expect(page.locator('#stats')).toContainText('0 / 70');await page.locator('#submitAnswer').click();await expect(page.locator('#toast')).toContainText('답을 선택');await page.locator('input[value="1"]').check();await page.locator('#submitAnswer').click();await expect(page.locator('#feedback')).toContainText('아쉬워요');await page.reload();await expect(page.locator('input[value="1"]')).toBeChecked();await expect(page.locator('#stats')).toContainText('1 / 70');await page.locator('#wrongMode').click();await expect(page.locator('#grid button')).toHaveCount(1);await page.locator('#allMode').click();await page.getByRole('button',{name:'9번 미응답',exact:true}).click();await expect(page.locator('#questionType')).toHaveText('복수정답');await page.locator('input[value="2"]').check();await page.locator('input[value="3"]').check();await page.locator('#submitAnswer').click();await expect(page.locator('#feedback')).toContainText('정답이에요');await page.locator('#results').click();await expect(page.locator('#resultStats')).toContainText('68');await page.locator('#reviewUnanswered').click();await expect(page.locator('#category')).toContainText('2번');await page.locator('#categorySelect').selectOption('의학용어·기초');await expect(page.locator('#category')).toContainText('31번');await page.locator('#textView').click();await expect(page.locator('#rawText')).toHaveValue(/31\./);await page.locator('[aria-label="텍스트 닫기"]').click();const width=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,view:innerWidth}));expect(width.scroll).toBeLessThanOrEqual(width.view);expect(errors).toEqual([]);});
-test('전 문항 완료와 초기화',async({page})=>{await page.goto('./');await page.evaluate(()=>{const s=window.QUIZ_SETS[0],answers=Object.fromEntries(s.questions.map(q=>[q.id,q.answer]));localStorage.setItem('chagok-quiz:v1:'+s.id+':'+s.version,JSON.stringify({answers,currentId:70}));});await page.reload();await expect(page.locator('#stats')).toContainText('70 / 70');await page.locator('#next').click();await expect(page.locator('#resultStats')).toContainText('100%');await expect(page.locator('#reviewUnanswered')).toBeDisabled();await page.locator('[aria-label="결과 닫기"]').click();page.once('dialog',d=>d.accept());await page.locator('#reset').click();await expect(page.locator('#stats')).toContainText('0 / 70');await expect(page.locator('#progress')).toHaveAttribute('value','0');});
-test('새 OX·단답형 문제집 추가와 문제집별 기록 분리',async({page})=>{await page.addInitScript(()=>{window.QUIZ_SETS=[{id:'test',version:1,title:'테스트',description:'테스트',questions:[{id:1,type:'boolean',title:'OX 문제',category:'기본',options:['O','X'],answer:1,explanation:'해설'},{id:2,type:'short',title:'영어로 신장',category:'기본',answers:['kidney'],explanation:'해설'}]}];});await page.goto('./');await page.locator('input[value="1"]').check();await page.locator('#submitAnswer').click();await page.locator('#next').click();await page.locator('input[name="short"]').fill(' KIDNEY ');await page.locator('#submitAnswer').click();await expect(page.locator('#feedback')).toContainText('정답이에요');await page.locator('#setSelect').selectOption('health-70');await expect(page.locator('#stats')).toContainText('0 / 70');await page.locator('#setSelect').selectOption('test');await expect(page.locator('#stats')).toContainText('2 / 2');});
-test('손상된 저장소와 저장 제한에서도 퀴즈를 풀 수 있다',async({page})=>{await page.addInitScript(()=>{localStorage.setItem('chagok-quiz:v1:health-70:1','{invalid');Object.defineProperty(Storage.prototype,'setItem',{value(){throw Error('blocked');}});});await page.goto('./');await page.locator('input[value="2"]').check();await page.locator('#submitAnswer').click();await expect(page.locator('#feedback')).toContainText('정답이에요');await expect(page.locator('#saveStatus')).toContainText('이번 풀이만');});
+
+test('간단한 화면에서 기존·신규 문제집을 선택하고 기록을 분리한다',async({page})=>{
+  const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  await page.goto('./');
+  await expect(page).toHaveTitle('중간고사 대비 문제풀기');
+  await expect(page.locator('h1')).toHaveText('중간고사 대비 문제풀기');
+  await expect(page.locator('body')).not.toContainText('차곡');
+  await expect(page.locator('#setSelect option')).toHaveCount(2);
+  await expect(page.locator('#questionSelect option')).toHaveCount(70);
+  await page.locator('input[value="2"]').check();
+  await page.locator('#submitAnswer').click();
+  await expect(page.locator('#feedback')).toHaveText('정답');
+  await page.locator('#setSelect').selectOption('health-law-60');
+  await expect(page.locator('#questionSelect option')).toHaveCount(60);
+  await expect(page.locator('#questionTitle')).toContainText('보건의료기본법의 목적');
+  await page.locator('input[value="2"]').check();
+  await page.locator('#submitAnswer').click();
+  await expect(page.locator('#feedback')).toHaveText('정답');
+  await expect(page.locator('#explanation')).toHaveAttribute('open','');
+  await page.locator('#next').click();
+  await expect(page.locator('#category')).toContainText('2번');
+  await page.reload();
+  await expect(page.locator('#setSelect')).toHaveValue('health-law-60');
+  await expect(page.locator('#category')).toContainText('2번');
+  await expect(page.locator('#stats')).toContainText('푼 문제 1/60');
+  await page.locator('#setSelect').selectOption('health-70');
+  await expect(page.locator('#stats')).toContainText('푼 문제 1/70');
+  const size=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));
+  expect(size.scroll).toBeLessThanOrEqual(size.width);
+  expect(errors).toEqual([]);
+});
+
+test('미응답 처리, 복수정답, 해설 열람, 마지막 문항, 초기화',async({page})=>{
+  await page.goto('./');
+  await page.locator('#submitAnswer').click();
+  await expect(page.locator('#notice')).toHaveText('답을 선택하세요.');
+  await page.locator('#explanation summary').click();
+  await expect(page.locator('#correctAnswer')).toBeVisible();
+  await expect(page.locator('#stats')).toContainText('푼 문제 0/70');
+  await page.locator('#questionSelect').selectOption('9');
+  await expect(page.locator('#instruction')).toHaveText('정답을 모두 선택하세요.');
+  await page.locator('input[value="2"]').check();
+  await page.locator('input[value="3"]').check();
+  await page.locator('#submitAnswer').click();
+  await expect(page.locator('#feedback')).toHaveText('정답');
+  await page.locator('#setSelect').selectOption('health-law-60');
+  await page.locator('#questionSelect').selectOption('24');
+  await page.locator('input[value="1"]').check();
+  await page.locator('#submitAnswer').click();
+  await expect(page.locator('#feedback')).toHaveText('정답');
+  await expect(page.locator('#explanationText')).toContainText('선고유예');
+  await page.locator('#questionSelect').selectOption('60');
+  await expect(page.locator('#next')).toBeDisabled();
+  page.once('dialog',dialog=>dialog.accept());
+  await page.locator('#reset').click();
+  await expect(page.locator('#stats')).toContainText('푼 문제 0/60');
+  await page.locator('#setSelect').selectOption('health-70');
+  await expect(page.locator('#stats')).toContainText('푼 문제 1/70');
+});
+
+test('기존 기록과 OX·단답형을 계속 사용할 수 있다',async({page})=>{
+  await page.addInitScript(()=>{
+    localStorage.setItem('chagok-quiz:v1:health-70:1',JSON.stringify({answers:{1:2},currentId:1,category:'보건의료법규'}));
+    window.QUIZ_SETS=[{id:'test',version:1,title:'테스트',questions:[{id:1,type:'boolean',title:'OX 문제',category:'기본',options:['O','X'],answer:1,explanation:'해설'},{id:2,type:'short',title:'영어로 신장',category:'기본',answers:['kidney'],explanation:'해설'}]}];
+  });
+  await page.goto('./');
+  await page.locator('input[value="1"]').check();await page.locator('#submitAnswer').click();
+  await expect(page.locator('#feedback')).toHaveText('정답');
+  await page.locator('#next').click();await page.locator('input[name="short"]').fill(' KIDNEY ');
+  await page.locator('#submitAnswer').click();await expect(page.locator('#feedback')).toHaveText('정답');
+  await page.locator('#setSelect').selectOption('health-70');
+  await expect(page.locator('#stats')).toContainText('푼 문제 1/70');
+  await expect(page.locator('input[value="2"]')).toBeChecked();
+});
+
+test('저장소가 손상되거나 저장이 막혀도 문제를 풀 수 있다',async({page})=>{
+  await page.addInitScript(()=>{localStorage.setItem('chagok-quiz:v1:health-70:1','{invalid');Object.defineProperty(Storage.prototype,'setItem',{value(){throw Error('blocked');}});});
+  await page.goto('./');await page.locator('input[value="2"]').check();await page.locator('#submitAnswer').click();
+  await expect(page.locator('#feedback')).toHaveText('정답');
+  await expect(page.locator('#saveStatus')).toContainText('저장할 수 없습니다');
+});

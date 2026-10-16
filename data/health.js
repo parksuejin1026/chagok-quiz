@@ -2,7 +2,7 @@ window.QUIZ_SETS = window.QUIZ_SETS || [];
 window.QUIZ_SETS.push({
   "id": "health-70",
   "version": 1,
-  "title": "보건의료법규 · 의학용어",
+  "title": "보건의료법규 및 의학용어 (70문항)",
   "description": "70문항으로 점검하는 보건의료법규와 의학 기초. 틀린 문제는 해설과 함께 다시 살펴보세요.",
   "questions": [
     {
