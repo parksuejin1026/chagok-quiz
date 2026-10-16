@@ -1,0 +1,14 @@
+{
+  "name": "chagok-quiz",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/core.test.cjs",
+    "test:browser": "playwright test",
+    "preview": "node scripts/serve.cjs",
+    "build": "node scripts/build.cjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1"
+  }
+}
