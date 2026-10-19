@@ -1,4 +1,15 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');const context={window:{}};vm.createContext(context);for(const f of ['core.js','data/health.js','data/health-law.js','data/medical-records.js','data/quality-safety.js','data/hospital-finance.js'])vm.runInContext(fs.readFileSync(f,'utf8'),context);const C=context.QuizCore,sets=context.window.QUIZ_SETS,q=sets[0].questions;
+test('shuffle preserves questions, answers and source order and changes repeated order',()=>{
+  const before=JSON.stringify(q);
+  const shuffled=C.shuffle(q,()=>0);
+  assert.notDeepEqual(Array.from(shuffled,x=>x.id),Array.from(q,x=>x.id));
+  assert.equal(new Set(shuffled).size,q.length);
+  assert.ok(shuffled.every(x=>q.includes(x)));
+  assert.equal(JSON.stringify(q),before);
+  assert.notDeepEqual(Array.from(C.shuffle(q,()=>0.99999),x=>x.id),Array.from(q,x=>x.id));
+  assert.equal(C.shuffle([]).length,0);
+  assert.equal(C.shuffle([q[0]])[0],q[0]);
+});
 test('70문항 데이터와 정답 범위가 유효하다',()=>{C.validate(sets);assert.equal(q.length,70);});
 test('전체 정답·오답·미응답을 구분한다',()=>{assert.equal(C.stats(q,{}).unanswered,70);const answers=Object.fromEntries(q.map(x=>[x.id,x.answer]));assert.equal(C.stats(q,answers).correct,70);assert.equal(C.stats(q,{1:1,2:1}).wrong,1);assert.equal(C.stats(q,{1:1,2:1}).unanswered,68);});
 test('복수정답은 누락·과잉 선택을 오답 처리한다',()=>{const x=q.find(x=>x.id===9);assert.equal(C.isCorrect(x,[3,2]),true);assert.equal(C.isCorrect(x,[2]),false);assert.equal(C.isCorrect(x,[1,2,3]),false);assert.equal(C.validAnswer(x,[2,2]),false);});

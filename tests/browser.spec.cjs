@@ -1,5 +1,53 @@
 const {test,expect}=require('@playwright/test');
 
+// Existing scenarios continue saved sessions in the original sequence.
+test.beforeEach(async ({page}, testInfo) => {
+  if (testInfo.title.startsWith('shuffle:')) return;
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem('test-seeded')) return;
+    for (const id of ['health-70','health-law-60','medical-records-66','quality-safety-29','hospital-finance-70']) {
+      localStorage.setItem('chagok-quiz:v1:' + id + ':1', JSON.stringify({answers:{}}));
+    }
+    sessionStorage.setItem('test-seeded','1');
+  });
+});
+
+test('shuffle: fresh sessions shuffle, resume preserves order, reset reshuffles', async ({page}) => {
+  await page.goto('./');
+  const order = () => page.locator('#questionSelect option').evaluateAll(items => items.map(item => item.value));
+  const first = await order();
+  const original = await page.evaluate(() => window.QUIZ_SETS[0].questions.map(q => String(q.id)));
+  expect(first).not.toEqual(original);
+  expect([...first].sort()).toEqual([...original].sort());
+  await page.getByRole('radio').first().check();
+  await page.locator('#submitAnswer').click();
+  const feedback = await page.locator('#feedback').textContent();
+  await page.locator('#next').click();
+  await page.reload();
+  expect(await order()).toEqual(first);
+  await expect(page.locator('#questionSelect')).toHaveValue(first[1]);
+  await page.locator('#prev').click();
+  await expect(page.locator('#feedback')).toHaveText(feedback);
+  await page.locator('#setSelect').selectOption('health-law-60');
+  const secondSet = await order();
+  await page.locator('#setSelect').selectOption('health-70');
+  expect(await order()).toEqual(first);
+  page.once('dialog',dialog => dialog.dismiss());
+  await page.locator('#reset').click();
+  expect(await order()).toEqual(first);
+  page.once('dialog',dialog => dialog.accept());
+  await page.locator('#reset').click();
+  const reset = await order();
+  expect(reset).not.toEqual(first);
+  expect([...reset].sort()).toEqual([...first].sort());
+  await expect(page.locator('#position')).toHaveText('1 / 70');
+  await expect(page.locator('#stats')).toContainText('0/70');
+  await page.reload();
+  expect(await order()).toEqual(reset);
+  await page.locator('#setSelect').selectOption('health-law-60');
+  expect(await order()).toEqual(secondSet);
+});
+
 test('간단한 화면에서 기존·신규 문제집을 선택하고 기록을 분리한다',async({page})=>{
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
   await page.goto('./');
@@ -67,6 +115,7 @@ test('기존 기록과 OX·단답형을 계속 사용할 수 있다',async({page
     window.QUIZ_SETS=[{id:'test',version:1,title:'테스트',questions:[{id:1,type:'boolean',title:'OX 문제',category:'기본',options:['O','X'],answer:1,explanation:'해설'},{id:2,type:'short',title:'영어로 신장',category:'기본',answers:['kidney'],explanation:'해설'}]}];
   });
   await page.goto('./');
+  await page.locator('#questionSelect').selectOption('1');
   await page.locator('input[value="1"]').check();await page.locator('#submitAnswer').click();
   await expect(page.locator('#feedback')).toHaveText('정답');
   await page.locator('#next').click();await page.locator('input[name="short"]').fill(' KIDNEY ');
@@ -78,7 +127,7 @@ test('기존 기록과 OX·단답형을 계속 사용할 수 있다',async({page
 
 test('저장소가 손상되거나 저장이 막혀도 문제를 풀 수 있다',async({page})=>{
   await page.addInitScript(()=>{localStorage.setItem('chagok-quiz:v1:health-70:1','{invalid');Object.defineProperty(Storage.prototype,'setItem',{value(){throw Error('blocked');}});});
-  await page.goto('./');await page.locator('input[value="2"]').check();await page.locator('#submitAnswer').click();
+  await page.goto('./');await page.locator('#questionSelect').selectOption('1');await page.locator('input[value="2"]').check();await page.locator('#submitAnswer').click();
   await expect(page.locator('#feedback')).toHaveText('정답');
   await expect(page.locator('#saveStatus')).toContainText('저장할 수 없습니다');
 });

@@ -15,6 +15,7 @@
   // Keep the existing storage keys so earlier answers remain available.
   const lastSetKey = 'chagok-quiz:last-set';
   let set = sets[0];
+  let questions = [];
   let answers = {};
   let drafts = {};
   let index = 0;
@@ -26,7 +27,7 @@
   const storageKey = () => 'chagok-quiz:v1:' + set.id + ':' + set.version;
   function save() {
     try {
-      localStorage.setItem(storageKey(), JSON.stringify({ answers, drafts, currentId: set.questions[index].id }));
+      localStorage.setItem(storageKey(), JSON.stringify({ answers, drafts, order: questions.map(question => question.id), currentId: questions[index].id }));
       localStorage.setItem(lastSetKey, set.id);
       $('saveStatus').hidden = true;
     } catch {
@@ -39,19 +40,28 @@
     answers = {};
     drafts = {};
     index = 0;
+    questions = core.shuffle(set.questions);
     try {
       const saved = JSON.parse(localStorage.getItem(storageKey()) || 'null');
       if (saved && saved.answers && typeof saved.answers === 'object') {
-        for (const question of set.questions) {
+        const byId = new Map(set.questions.map(question => [question.id, question]));
+        if (Array.isArray(saved.order) && saved.order.length === byId.size
+          && new Set(saved.order).size === byId.size && saved.order.every(id => byId.has(id))) {
+          questions = saved.order.map(id => byId.get(id));
+        } else if (!saved.order) {
+          // Continue records saved before shuffling in their original sequence.
+          questions = [...set.questions];
+        }
+        for (const question of questions) {
           if (core.validAnswer(question, saved.answers[question.id])) {
             answers[question.id] = saved.answers[question.id];
           }
         }
-        for (const question of set.questions) {
+        for (const question of questions) {
           const value = saved.drafts?.[question.id];
           if (validDraft(question, value)) drafts[question.id] = value;
         }
-        index = Math.max(0, set.questions.findIndex(question => question.id === saved.currentId));
+        index = Math.max(0, questions.findIndex(question => question.id === saved.currentId));
       }
     } catch {}
   }
@@ -67,13 +77,13 @@
 
   function rememberDraft(value) {
     draft = value;
-    drafts[set.questions[index].id] = value;
+    drafts[questions[index].id] = value;
     save();
     $('notice').hidden = true;
   }
 
   function firstUnanswered() {
-    return set.questions.findIndex(question => !core.validAnswer(question, answers[question.id]));
+    return questions.findIndex(question => !core.validAnswer(question, answers[question.id]));
   }
 
   $('questionImage').addEventListener('load', () => { $('imageError').hidden = true; });
@@ -88,10 +98,10 @@
   }
 
   function render(focus = false) {
-    const question = set.questions[index];
+    const question = questions[index];
     const saved = answers[question.id];
     const answered = core.validAnswer(question, saved);
-    const stats = core.stats(set.questions, answers);
+    const stats = core.stats(questions, answers);
     const hasDraft = Object.hasOwn(drafts, question.id);
     const editing = answered && hasDraft;
     const locked = answered && !editing;
@@ -112,9 +122,9 @@
       $('imageLink').removeAttribute('href');
     }
     $('stats').textContent = '푼 문제 ' + stats.answered + '/' + stats.total + ' · 정답 ' + stats.correct + ' · 오답 ' + stats.wrong;
-    $('position').textContent = (index + 1) + ' / ' + set.questions.length;
+    $('position').textContent = (index + 1) + ' / ' + questions.length;
     $('prev').disabled = index === 0;
-    const last = index === set.questions.length - 1;
+    const last = index === questions.length - 1;
     const remaining = firstUnanswered();
     $('next').disabled = last && (remaining === -1 || remaining === index);
     $('next').textContent = last
@@ -198,7 +208,7 @@
       } catch {}
     }
     $('questionSelect').replaceChildren();
-    for (const item of set.questions) {
+    for (const item of questions) {
       const done = core.validAnswer(item, answers[item.id]);
       const status = done ? (core.isCorrect(item, answers[item.id]) ? ' · 정답' : ' · 오답') : '';
       $('questionSelect').add(new Option(item.id + '번' + status, String(item.id)));
@@ -212,7 +222,7 @@
 
   $('answerForm').addEventListener('submit', event => {
     event.preventDefault();
-    const question = set.questions[index];
+    const question = questions[index];
     if (core.validAnswer(question, answers[question.id]) && !Object.hasOwn(drafts, question.id)) return;
     if (!core.validAnswer(question, draft)) {
       $('notice').textContent = question.type === 'short' ? '정답을 입력하세요.' : '답을 선택하세요.';
@@ -225,7 +235,7 @@
     render();
   });
   $('editAnswer').addEventListener('click', () => {
-    const question = set.questions[index];
+    const question = questions[index];
     if (Object.hasOwn(drafts, question.id)) {
       delete drafts[question.id];
     } else {
@@ -239,7 +249,7 @@
     if (index > 0) { index--; render(true); save(); }
   });
   $('next').addEventListener('click', () => {
-    if (index < set.questions.length - 1) index++;
+    if (index < questions.length - 1) index++;
     else {
       const remaining = firstUnanswered();
       if (remaining < 0) return;
@@ -249,7 +259,7 @@
     save();
   });
   $('questionSelect').addEventListener('change', event => {
-    index = set.questions.findIndex(question => String(question.id) === event.target.value);
+    index = questions.findIndex(question => String(question.id) === event.target.value);
     render(true);
     save();
   });
@@ -264,6 +274,7 @@
     if (!confirm('선택한 문제집의 제출한 답과 작성 중인 답을 모두 지울까요?')) return;
     answers = {};
     drafts = {};
+    questions = core.shuffle(questions);
     index = 0;
     render();
     save();
@@ -273,4 +284,5 @@
   $('setSelect').value = set.id;
   restore();
   render();
+  save();
 })();

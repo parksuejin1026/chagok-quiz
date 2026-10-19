@@ -40,6 +40,17 @@ function stats(questions, answers) {
  for(const q of questions) if(validAnswer(q,answers[q.id])) {answered++; if(isCorrect(q,answers[q.id]))correct++;}
  return {total:questions.length,answered,correct,wrong:answered-correct,unanswered:questions.length-answered,percent:Math.round(correct/questions.length*100)};
 }
-root.QuizCore={validate,validAnswer,isCorrect,stats};
+function shuffle(questions, random = Math.random) {
+ const result = [...questions];
+ for (let i = result.length - 1; i > 0; i--) {
+  const j = Math.floor(random() * (i + 1));
+  [result[i], result[j]] = [result[j], result[i]];
+ }
+ if (result.length > 1 && result.every((q, i) => q.id === questions[i].id)) {
+  [result[0], result[1]] = [result[1], result[0]];
+ }
+ return result;
+}
+root.QuizCore={validate,validAnswer,isCorrect,stats,shuffle};
 })(globalThis);
 
